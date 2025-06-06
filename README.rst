@@ -48,6 +48,10 @@ Usage
     Found AC3001234567890123: address 00:11:22:33:44:55
     $ bluetti-mqtt --broker [MQTT_BROKER_HOST] 00:11:22:33:44:55
 
+The MQTT broker port defaults to 1883. If your broker uses a different port,
+you can specify it as part of the broker host (e.g., ``mybroker.com:1884``) or
+by using the ``--port`` argument (e.g., ``--port 1884``).
+
 If your MQTT broker has a username and password, you can pass those in.
 
 .. code-block:: bash
@@ -105,10 +109,17 @@ Home Assistant Integration
 
 If you have configured Home Assistant to use the same MQTT broker, then by
 default most data and switches will be automatically configured there. This is
-possible thanks to Home Assistant's support for automatic MQTT discovery, which
-is enabled by default with the discovery prefix of ``homeassistant``.
+possible thanks to Home Assistant's support for automatic MQTT discovery.
+By default, bluetti_mqtt uses ``homeassistant`` as the discovery prefix. This
+can be customized using the ``--ha-discovery-prefix`` command-line option. For
+example, to use ``myhomeassistant`` as the prefix:
 
-This can be controlled with the ``--ha-config`` flag, which defaults to
+.. code-block:: bash
+
+    $ bluetti-mqtt --broker [MQTT_BROKER_HOST] --ha-discovery-prefix myhomeassistant 00:11:22:33:44:55
+
+The level of detail for Home Assistant discovery can be controlled with the
+``--ha-config`` flag, which defaults to
 configuring most fields ("normal"). Home Assistant MQTT discovery can also be
 disabled, or additional internal device fields can be configured with the
 "advanced" option.

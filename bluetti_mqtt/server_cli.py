@@ -53,6 +53,10 @@ class CommandLineHandler:
             choices=['normal', 'none', 'advanced'],
             help='What fields to configure in Home Assistant - defaults to most fields ("normal")')
         parser.add_argument(
+            '--ha-discovery-prefix',
+            default='homeassistant',
+            help='The Home Assistant discovery prefix - defaults to %(default)s')
+        parser.add_argument(
             'addresses',
             metavar='ADDRESS',
             nargs='*',
@@ -110,6 +114,7 @@ class CommandLineHandler:
             port=args.port,
             username=args.username,
             password=args.password,
+            discovery_prefix=args.ha_discovery_prefix,
         )
         mqtt_task = loop.create_task(mqtt_client.run())
         self.background_tasks.add(mqtt_task)

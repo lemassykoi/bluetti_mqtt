@@ -592,6 +592,7 @@ class MQTTClient:
         port: int = 1883,
         username: Optional[str] = None,
         password: Optional[str] = None,
+        discovery_prefix: str = 'homeassistant',
     ):
         self.bus = bus
         self.hostname = hostname
@@ -599,6 +600,7 @@ class MQTTClient:
         self.username = username
         self.password = password
         self.home_assistant_mode = home_assistant_mode
+        self.discovery_prefix = discovery_prefix
         self.devices = []
 
     async def run(self):
@@ -694,7 +696,7 @@ class MQTTClient:
 
             # Publish config
             await client.publish(
-                f'homeassistant/{type}/{device.sn}_{name}/config',
+                f'{self.discovery_prefix}/{type}/{device.sn}_{name}/config',
                 payload=payload(name, device, field).encode(),
                 retain=True
             )
@@ -709,7 +711,7 @@ class MQTTClient:
 
                 # Publish config
                 await client.publish(
-                    f'homeassistant/sensor/{device.sn}_{field.id_override}/config',
+                    f'{self.discovery_prefix}/sensor/{device.sn}_{field.id_override}/config',
                     payload=payload(f'pack_details{pack}', device, field).encode(),
                     retain=True
                 )
@@ -718,7 +720,7 @@ class MQTTClient:
         if device.has_field('internal_dc_input_voltage'):
             for name, field in DC_INPUT_FIELDS.items():
                 await client.publish(
-                    f'homeassistant/sensor/{device.sn}_{name}/config',
+                    f'{self.discovery_prefix}/sensor/{device.sn}_{name}/config',
                     payload=payload(name, device, field).encode(),
                     retain=True
                 )
