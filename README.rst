@@ -98,16 +98,26 @@ This command needs to be run with root privileges:
     sudo bluetti-mqtt --install
 
 The installer will guide you through an interactive setup process, prompting for:
-* The username under which the service should run.
-* MQTT broker details (host, port, username, password).
-* Device MAC addresses.
-* Other operational parameters like polling interval and log level.
+
+- The username under which the service should run.
+
+- MQTT broker details (host, port, username, password).
+
+- Device MAC addresses.
+
+- Other operational parameters like polling interval and log level.
+
 
 It will then:
+
 1. Generate a systemd service file in ``/etc/systemd/system/bluetti-mqtt.service``.
+
 2. Reload the systemd daemon.
+
 3. Enable the service to start automatically on boot.
+
 4. Offer to start the service immediately.
+
 
 Once installed, you can manage the service using standard ``systemctl`` commands
 (e.g., ``sudo systemctl status bluetti-mqtt``, ``sudo systemctl start bluetti-mqtt``,
