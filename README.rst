@@ -161,19 +161,27 @@ Home Assistant Integration
 If you have configured Home Assistant to use the same MQTT broker, then by
 default most data and switches will be automatically configured there. This is
 possible thanks to Home Assistant's support for automatic MQTT discovery.
-By default, bluetti_mqtt uses ``homeassistant`` as the discovery prefix. This
-can be customized using the ``--ha-discovery-prefix`` command-line option. For
-example, to use ``myhomeassistant`` as the prefix:
-
-.. code-block:: bash
-
-    $ bluetti-mqtt --broker [MQTT_BROKER_HOST] --ha-discovery-prefix myhomeassistant 00:11:22:33:44:55
+By default, bluetti_mqtt uses ``homeassistant`` as the discovery prefix.
 
 The level of detail for Home Assistant discovery can be controlled with the
 ``--ha-config`` flag, which defaults to
 configuring most fields ("normal"). Home Assistant MQTT discovery can also be
 disabled, or additional internal device fields can be configured with the
 "advanced" option.
+
+
+Domoticz Integration
+--------------------------
+
+If you have configured Domoticz to use MQTT Auto Discovery Client Gateway with LAN
+Interface, you can use your custom auto discovery prefix when polling. This
+can be customized using the ``--ha-discovery-prefix`` command-line option. For
+example, to use ``domoticz`` as the prefix:
+
+.. code-block:: bash
+
+    $ bluetti-mqtt --broker 127.0.0.1 --ha-discovery-prefix domoticz 00:11:22:33:44:55
+
 
 Reverse Engineering
 -------------------
