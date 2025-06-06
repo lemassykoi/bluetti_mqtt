@@ -86,11 +86,44 @@ not set an interval.
 Background Service
 ------------------
 
-If you are running on a platform with systemd, you can use the following as a
-template. It should be placed in ``/etc/systemd/system/bluetti-mqtt.service``.
+Automated Installation (systemd)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For Linux systems using systemd (like Raspberry Pi), you can use the ``--install``
+flag to automate the setup of `bluetti-mqtt` as a background service.
+This command needs to be run with root privileges:
+
+.. code-block:: bash
+
+    sudo bluetti-mqtt --install
+
+The installer will guide you through an interactive setup process, prompting for:
+* The username under which the service should run.
+* MQTT broker details (host, port, username, password).
+* Device MAC addresses.
+* Other operational parameters like polling interval and log level.
+
+It will then:
+1. Generate a systemd service file in ``/etc/systemd/system/bluetti-mqtt.service``.
+2. Reload the systemd daemon.
+3. Enable the service to start automatically on boot.
+4. Offer to start the service immediately.
+
+Once installed, you can manage the service using standard ``systemctl`` commands
+(e.g., ``sudo systemctl status bluetti-mqtt``, ``sudo systemctl start bluetti-mqtt``,
+``sudo systemctl stop bluetti-mqtt``). Logs can be viewed with
+``journalctl -u bluetti-mqtt.service``.
+
+Manual Setup (systemd)
+~~~~~~~~~~~~~~~~~~~~~~
+
+Alternatively, for manual setup or further customization, you can use the
+following systemd service template. It should be placed in
+``/etc/systemd/system/bluetti-mqtt.service``.
 Once you've written the file, you'll need to run
-``sudo systemctl start bluetti-mqtt``. If you want it to run automatically after
-rebooting, you'll also need to run ``sudo systemctl enable bluetti-mqtt``.
+``sudo systemctl daemon-reload``, then ``sudo systemctl enable bluetti-mqtt``
+to have it start on boot, and finally ``sudo systemctl start bluetti-mqtt``
+to run it.
 
 .. code-block:: bash
 
