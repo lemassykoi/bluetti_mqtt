@@ -66,6 +66,14 @@ collect less data, the polling interval can be adjusted.
     # Poll every 60s
     $ bluetti-mqtt --broker [MQTT_BROKER_HOST] --interval 60 00:11:22:33:44:55
 
+The logging verbosity can be controlled using the ``--loglevel`` option.
+Available levels are DEBUG, INFO, WARNING, and ERROR. The default level is INFO.
+For more detailed output, for example to debug issues:
+
+.. code-block:: bash
+
+    $ bluetti-mqtt --broker [MQTT_BROKER_HOST] --loglevel DEBUG 00:11:22:33:44:55
+
 If you have multiple devices within bluetooth range, you can monitor all of
 them with just a single command. We can only talk to one device at a time, so
 you may notice some irregularity in the collected data, especially if you have

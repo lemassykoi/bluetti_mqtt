@@ -31,9 +31,12 @@ class DeviceHandler:
         await asyncio.gather(*(polling_tasks + pack_polling_tasks + [manager_task]))
 
     async def handle_command(self, msg: CommandMessage):
+        logging.info(f"Received command for {msg.device.type}-{msg.device.address} via bus, forwarding to manager.")
         if self.manager.is_ready(msg.device.address):
             logging.debug(f'Performing command {msg.device}: {msg.command}')
             await self.manager.perform_nowait(msg.device.address, msg.command)
+        else:
+            logging.info(f"Device {msg.device.address} not ready, command for {msg.device.type}-{msg.device.address} will be ignored by manager for now.")
 
     async def _poll(self, address: str):
         while True:
@@ -68,8 +71,10 @@ class DeviceHandler:
 
             start_time = time.monotonic()
             for pack in range(1, device.pack_num_max + 1):
+                logging.info(f"Starting pack poll for pack #{pack} on device {device.type}-{device.address}")
                 # Send pack set command if the device supports more than 1 pack
                 if device.pack_num_max > 1:
+                    logging.info(f"Setting pack_num to {pack} on device {device.type}-{device.address}")
                     command = device.build_setter_command('pack_num', pack)
                     await self.manager.perform_nowait(address, command)
                     await asyncio.sleep(10)  # We need to wait after switching packs for the data to be available
@@ -84,11 +89,14 @@ class DeviceHandler:
                 await asyncio.sleep(self.interval - elapsed)
 
     async def _poll_with_command(self, device: BluettiDevice, command: ReadHoldingRegisters):
+        logging.info(f"Polling {device.type}-{device.address} with command: {command}")
         response_future = await self.manager.perform(device.address, command)
         try:
             response = cast(bytes, await response_future)
+            logging.debug(f"Raw response from {device.type}-{device.address} for command {command}: {response.hex()}")
             body = command.parse_response(response)
             parsed = device.parse(command.starting_address, body)
+            logging.debug(f"Parsed data from {device.type}-{device.address} for command {command}: {parsed}")
             await self.bus.put(ParserMessage(device, parsed))
         except ParseError:
             logging.debug('Got a parse exception...')

@@ -57,6 +57,12 @@ class CommandLineHandler:
             default='homeassistant',
             help='The Home Assistant discovery prefix - defaults to %(default)s')
         parser.add_argument(
+            '--loglevel',
+            choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+            default='INFO',
+            type=str.upper,
+            help='Set the logging output level (DEBUG, INFO, WARNING, ERROR) - defaults to %(default)s')
+        parser.add_argument(
             'addresses',
             metavar='ADDRESS',
             nargs='*',
@@ -67,7 +73,20 @@ class CommandLineHandler:
         if sys.platform == 'win32':
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-        args = parser.parse_args()
+        args = parser.parse_args(self.argv[1:])
+
+        # Configure logging
+        numeric_level = getattr(logging, args.loglevel.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError(f'Invalid log level: {args.loglevel}')
+        logging.basicConfig(
+            datefmt='%Y-%m-%d %H:%M:%S',
+            format='%(asctime)s %(levelname)-8s %(message)s',
+            level=numeric_level
+        )
+        if numeric_level == logging.DEBUG:
+            warnings.simplefilter('always')
+
         if args.scan:
             asyncio.run(scan_devices())
         elif args.hostname and len(args.addresses) > 0:
@@ -145,18 +164,6 @@ async def shutdown(loop: asyncio.AbstractEventLoop):
 
 
 def main(argv=None):
-    debug = os.environ.get('DEBUG')
-    level = logging.INFO
-    if debug:
-        level = logging.DEBUG
-        warnings.simplefilter('always')
-
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H:%M:%S',
-        format='%(asctime)s %(levelname)-8s %(message)s',
-        level=level
-    )
-
     cli = CommandLineHandler(argv)
     cli.execute()
 

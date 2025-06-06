@@ -80,8 +80,12 @@ class BluetoothClient:
             logging.info(f'Connected to device: {self.address}')
         except BleakDeviceNotFoundError:
             logging.debug(f'Error connecting to device {self.address}: Not found')
-        except (BleakError, EOFError, asyncio.TimeoutError):
-            logging.exception(f'Error connecting to device {self.address}:')
+        except (BleakError, EOFError, asyncio.TimeoutError) as e:
+            logger = logging.getLogger(__name__)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.error(f'Error connecting to device {self.address}:', exc_info=True)
+            else:
+                logger.error(f'Error connecting to device {self.address}: {e}')
             await asyncio.sleep(1)
 
     async def _get_name(self):

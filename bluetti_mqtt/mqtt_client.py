@@ -695,9 +695,12 @@ class MQTTClient:
                 type = 'button'
 
             # Publish config
+            config_payload_str = payload(name, device, field)
+            config_topic = f'{self.discovery_prefix}/{type}/{device.sn}_{name}/config'
+            logging.debug(f"Publishing HA discovery: Topic='{config_topic}', Payload='{config_payload_str}'")
             await client.publish(
-                f'{self.discovery_prefix}/{type}/{device.sn}_{name}/config',
-                payload=payload(name, device, field).encode(),
+                config_topic,
+                payload=config_payload_str.encode(),
                 retain=True
             )
 
@@ -710,18 +713,24 @@ class MQTTClient:
                     continue
 
                 # Publish config
+                pack_config_payload_str = payload(f'pack_details{pack}', device, field)
+                pack_config_topic = f'{self.discovery_prefix}/sensor/{device.sn}_{field.id_override}/config'
+                logging.debug(f"Publishing HA discovery: Topic='{pack_config_topic}', Payload='{pack_config_payload_str}'")
                 await client.publish(
-                    f'{self.discovery_prefix}/sensor/{device.sn}_{field.id_override}/config',
-                    payload=payload(f'pack_details{pack}', device, field).encode(),
+                    pack_config_topic,
+                    payload=pack_config_payload_str.encode(),
                     retain=True
                 )
 
         # Publish DC input config
         if device.has_field('internal_dc_input_voltage'):
             for name, field in DC_INPUT_FIELDS.items():
+                dc_config_payload_str = payload(name, device, field)
+                dc_config_topic = f'{self.discovery_prefix}/sensor/{device.sn}_{name}/config'
+                logging.debug(f"Publishing HA discovery: Topic='{dc_config_topic}', Payload='{dc_config_payload_str}'")
                 await client.publish(
-                    f'{self.discovery_prefix}/sensor/{device.sn}_{name}/config',
-                    payload=payload(name, device, field).encode(),
+                    dc_config_topic,
+                    payload=dc_config_payload_str.encode(),
                     retain=True
                 )
 
@@ -740,22 +749,28 @@ class MQTTClient:
             logging.warn(f'unknown device: {m[1]} {m[2]}')
             return
 
+        logging.info(f"Received MQTT command on topic '{mqtt_message.topic}' for device {device.type}-{device.sn}.")
+
         # Check if the device supports setting this field
         if not device.has_field_setter(m[3]):
             logging.warn(f'Received command for unknown topic: {m[3]} - {mqtt_message.topic}')
             return
 
         cmd: DeviceCommand = None
+        value_to_log = None # For logging
         if m[3] in NORMAL_DEVICE_FIELDS:
             field = NORMAL_DEVICE_FIELDS[m[3]]
             if field.type == MqttFieldType.ENUM:
                 value = mqtt_message.payload.decode('ascii')
+                value_to_log = value
                 cmd = device.build_setter_command(m[3], value)
             elif field.type == MqttFieldType.BOOL or field.type == MqttFieldType.BUTTON:
                 value = mqtt_message.payload == b'ON'
+                value_to_log = value
                 cmd = device.build_setter_command(m[3], value)
             elif field.type == MqttFieldType.NUMERIC:
                 value = int(mqtt_message.payload.decode('ascii'))
+                value_to_log = value
                 cmd = device.build_setter_command(m[3], value)
             else:
                 raise AssertionError(f'unexpected enum type: {field.type}')
@@ -763,10 +778,13 @@ class MQTTClient:
             logging.warn(f'Received command for unhandled topic: {m[3]} - {mqtt_message.topic}')
             return
 
+        logging.debug(f"Sending command to device {device.type}-{device.sn} via event bus: Field='{m[3]}', Value='{value_to_log}'")
+        logging.debug(f"Built command for {device.type}-{device.sn}: {cmd}")
         await self.bus.put(CommandMessage(device, cmd))
 
     async def _handle_message(self, client: Client, msg: ParserMessage):
         logging.debug(f'Got a message from {msg.device}: {msg.parsed}')
+        logging.info(f"Received data from {msg.device.type}-{msg.device.sn}, preparing to publish to MQTT.")
         topic_prefix = f'bluetti/state/{msg.device.type}-{msg.device.sn}/'
 
         # Publish normal fields
@@ -786,31 +804,44 @@ class MQTTClient:
             else:
                 assert False, f'Unhandled field type: {field.type.name}'
 
+            logging.debug(f"Publishing to MQTT: Topic='{topic_prefix + name}', Payload='{payload}'")
             await client.publish(topic_prefix + name, payload=payload.encode())
 
         # Publish battery pack data
         pack_details = self._build_pack_details(msg.parsed)
         if 'pack_num' in msg.parsed and len(pack_details) > 0:
+            pack_topic = topic_prefix + f'pack_details{msg.parsed["pack_num"]}'
+            pack_payload_str = json.dumps(pack_details, separators=(',', ':'))
+            logging.debug(f"Publishing to MQTT: Topic='{pack_topic}', Payload='{pack_payload_str}'")
             await client.publish(
-                topic_prefix + f'pack_details{msg.parsed["pack_num"]}',
-                payload=json.dumps(pack_details, separators=(',', ':')).encode()
+                pack_topic,
+                payload=pack_payload_str.encode()
             )
 
         # Publish DC input data
         if 'internal_dc_input_voltage' in msg.parsed:
+            dc_voltage_topic = topic_prefix + 'dc_input_voltage1'
+            dc_voltage_payload = str(msg.parsed['internal_dc_input_voltage'])
+            logging.debug(f"Publishing to MQTT: Topic='{dc_voltage_topic}', Payload='{dc_voltage_payload}'")
             await client.publish(
-                topic_prefix + 'dc_input_voltage1',
-                payload=str(msg.parsed['internal_dc_input_voltage']).encode()
+                dc_voltage_topic,
+                payload=dc_voltage_payload.encode()
             )
         if 'internal_dc_input_power' in msg.parsed:
+            dc_power_topic = topic_prefix + 'dc_input_power1'
+            dc_power_payload = str(msg.parsed['internal_dc_input_power'])
+            logging.debug(f"Publishing to MQTT: Topic='{dc_power_topic}', Payload='{dc_power_payload}'")
             await client.publish(
-                topic_prefix + 'dc_input_power1',
-                payload=str(msg.parsed['internal_dc_input_power']).encode()
+                dc_power_topic,
+                payload=dc_power_payload.encode()
             )
         if 'internal_dc_input_current' in msg.parsed:
+            dc_current_topic = topic_prefix + 'dc_input_current1'
+            dc_current_payload = str(msg.parsed['internal_dc_input_current'])
+            logging.debug(f"Publishing to MQTT: Topic='{dc_current_topic}', Payload='{dc_current_payload}'")
             await client.publish(
-                topic_prefix + 'dc_input_current1',
-                payload=str(msg.parsed['internal_dc_input_current']).encode()
+                dc_current_topic,
+                payload=dc_current_payload.encode()
             )
 
     def _build_pack_details(self, parsed: dict):
